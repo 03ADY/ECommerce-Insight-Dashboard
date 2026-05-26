@@ -36,26 +36,18 @@ from retail.insights import (
     insight_cards,
 )
 from retail.scenarios import build_scenarios
+from retail.theme import hero_html, inject_theme, style_fig
 
 st.set_page_config(page_title=APP_NAME, page_icon="📊", layout="wide")
-
-st.markdown("""
-<style>
-.insight-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; margin: 0.5rem 0 1rem; }
-.insight-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.9rem 1rem; border-left: 4px solid #6366f1; }
-.insight-card.warning { border-left-color: #f59e0b; }
-.insight-card.positive { border-left-color: #22c55e; }
-.insight-card h4 { margin: 0 0 0.35rem; font-size: 0.85rem; color: #64748b; }
-.insight-card p { margin: 0; font-size: 0.92rem; color: #0f172a; line-height: 1.4; }
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown(f"""
-<div style="background:linear-gradient(135deg,#0ea5e9,#6366f1);padding:1.5rem 2rem;border-radius:14px;color:white;margin-bottom:1rem;">
-<h1 style="margin:0;">📊 {APP_NAME}</h1>
-<p style="margin:0.4rem 0 0;opacity:0.9;">Demo scenarios · Executive brief · Goal tracking · Drill-down</p>
-</div>
-""", unsafe_allow_html=True)
+inject_theme()
+st.markdown(
+    hero_html(
+        APP_NAME,
+        "Demo scenarios · Executive brief · Goal tracking · Drill-down",
+        "📊",
+    ),
+    unsafe_allow_html=True,
+)
 
 
 def _delta_label(pct: float | None) -> str:
