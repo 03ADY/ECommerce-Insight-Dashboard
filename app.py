@@ -64,8 +64,10 @@ def _delta_label(pct: float | None) -> str:
     return f"{sign}{pct:.1f}% vs prior period"
 
 
-def _metric_with_delta(label: str, value: str, pct: float | None):
-    st.metric(label, value, _delta_label(pct) if pct is not None else None)
+def _metric_with_delta(col, label: str, value: str, pct: float | None):
+    delta = _delta_label(pct) if pct is not None else None
+    with col:
+        st.metric(label, value, delta=delta)
 
 
 def _render_insight_cards(cards: list[dict]):
@@ -133,11 +135,15 @@ if not df_prior.empty:
         genders or None,
     )
 
-cmp = period_comparison(df, df_prior) if not df_prior.empty else {
-    "current": compute_kpis(df),
-    "prior": compute_kpis(df_prior),
-    "delta_pct": {k: None for k in compute_kpis(df)},
-}
+if not df_prior.empty:
+    cmp = period_comparison(df, df_prior)
+else:
+    cur = compute_kpis(df)
+    cmp = {
+        "current": cur,
+        "prior": {k: 0 for k in cur},
+        "delta_pct": {k: None for k in cur},
+    }
 kpis, deltas = cmp["current"], cmp["delta_pct"]
 
 fc, fc_err, fc_meta = forecast_revenue(df, forecast_days)
