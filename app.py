@@ -28,6 +28,7 @@ from retail.analytics import (
 )
 from retail.config import APP_NAME, DAY_ORDER
 from retail.data import filter_sales, load_sales
+from retail.dates import ordered_range, to_date
 from retail.insights import (
     build_context,
     data_quality_score,
@@ -102,25 +103,68 @@ if df_full is None:
     st.stop()
 
 scenarios = build_scenarios(df_full)
-dmin, dmax = df_full["purchase_date"].min().date(), df_full["purchase_date"].max().date()
+dmin = to_date(df_full["purchase_date"].min())
+dmax = to_date(df_full["purchase_date"].max())
 all_cats = sorted(df_full["product_category"].unique())
 all_genders = sorted(df_full["gender"].unique()) if "gender" in df_full.columns else []
+scenario_keys = list(scenarios.keys())
 
 with st.sidebar:
     st.markdown("### 🎬 Demo")
     present_mode = st.toggle("Present mode", value=True, help="Cleaner layout for live demos")
-    scenario = st.selectbox("Scenario", list(scenarios.keys()), index=1)
+    scenario = st.radio(
+        "Scenario",
+        scenario_keys,
+        index=scenario_keys.index("Last 90 days") if "Last 90 days" in scenario_keys else 1,
+        help="Fixed presets — pick one (no typing required).",
+    )
     st.caption(scenarios[scenario]["blurb"])
 
     preset = scenarios[scenario]
-    use_custom_dates = scenario == "Custom range" or st.checkbox("Edit dates & filters", value=(scenario == "Custom range"))
+    use_custom_dates = scenario == "Custom range" or st.checkbox(
+        "Edit dates & filters",
+        value=(scenario == "Custom range"),
+        key="edit_dates_filters",
+    )
+
+    start_def, end_def = ordered_range(preset["start"], preset["end"], dmin, dmax)
 
     if use_custom_dates:
-        start, end = st.date_input("Date range", [preset["start"], preset["end"]], min_value=dmin, max_value=dmax)
-        cats = st.multiselect("Categories", all_cats, default=preset["categories"])
-        genders = st.multiselect("Gender", all_genders, default=preset["genders"]) if all_genders else []
+        d1, d2 = st.columns(2)
+        with d1:
+            start = st.date_input(
+                "Start",
+                value=start_def,
+                min_value=dmin,
+                max_value=dmax,
+                key=f"filter_start_{scenario}",
+            )
+        with d2:
+            end = st.date_input(
+                "End",
+                value=end_def,
+                min_value=dmin,
+                max_value=dmax,
+                key=f"filter_end_{scenario}",
+            )
+        start, end = ordered_range(start, end, dmin, dmax)
+        cats = st.multiselect(
+            "Categories",
+            all_cats,
+            default=preset["categories"],
+            key=f"filter_cats_{scenario}",
+        )
+        if all_genders:
+            genders = st.multiselect(
+                "Gender",
+                all_genders,
+                default=preset["genders"],
+                key=f"filter_gender_{scenario}",
+            )
+        else:
+            genders = []
     else:
-        start, end = preset["start"], preset["end"]
+        start, end = start_def, end_def
         cats, genders = preset["categories"], preset["genders"]
         st.success(f"📅 {start} → {end}")
 
