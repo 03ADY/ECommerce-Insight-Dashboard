@@ -70,6 +70,24 @@ def _metric_with_delta(col, label: str, value: str, pct: float | None):
         st.metric(label, value, delta=delta)
 
 
+def _cohort_heatmap(table: pd.DataFrame, title: str, colorscale: str = "Blues"):
+    """Plotly heatmap — no matplotlib required (pandas Styler needs matplotlib on Cloud)."""
+    if table.empty:
+        return
+    fig = go.Figure(
+        data=go.Heatmap(
+            z=table.astype(float).values,
+            x=[str(c) for c in table.columns],
+            y=[str(i) for i in table.index],
+            colorscale=colorscale,
+            text=[[f"{v:.0%}" if colorscale == "Blues" and v <= 1 else f"{v:,.0f}" for v in row] for row in table.values],
+            texttemplate="%{text}",
+        )
+    )
+    fig.update_layout(title=title, height=340)
+    st.plotly_chart(fig, use_container_width=True)
+
+
 def _render_insight_cards(cards: list[dict]):
     html = '<div class="insight-grid">'
     for c in cards[:5]:
@@ -304,11 +322,15 @@ with tabs[5]:
     with c1:
         cohort = cohort_retention(df)
         if not cohort.empty:
-            st.dataframe(cohort.style.background_gradient(cmap="Blues", axis=None), use_container_width=True)
+            _cohort_heatmap(cohort, "Retention by cohort", colorscale="Blues")
+            with st.expander("Retention table"):
+                st.dataframe(cohort, use_container_width=True)
     with c2:
         rev_cohort = cohort_revenue(df)
         if not rev_cohort.empty:
-            st.dataframe(rev_cohort.style.background_gradient(cmap="Greens", axis=None), use_container_width=True)
+            _cohort_heatmap(rev_cohort, "Revenue by cohort", colorscale="Greens")
+            with st.expander("Revenue table"):
+                st.dataframe(rev_cohort, use_container_width=True)
     ltv = cohort_ltv_curve(df)
     if not ltv.empty:
         st.plotly_chart(px.line(ltv, x="period", y="cumulative_revenue", color="cohort", markers=True), use_container_width=True)
